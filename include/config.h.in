@@ -1,0 +1,1 @@
+#define PACKAGE_STRING "lib_mysqludf_host_resolver-${CMAKE_PROJECT_VERSION}"
