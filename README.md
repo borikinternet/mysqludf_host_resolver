@@ -5,16 +5,10 @@ Installation
 ------------
 
 ```
- ./configure
- make
- sudo make install
- sudo make installdb
+mkdir cmake
+cd cmake
+cmake ..
+make
 ```
 
-To remove the library from your system:
-
-```
- make uninstalldb
- make uninstall
-```
-
+Then copy lib to your mysql/mariadb plugins dir and run installdb.sql script
