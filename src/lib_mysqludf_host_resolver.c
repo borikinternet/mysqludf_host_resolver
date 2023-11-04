@@ -38,7 +38,7 @@
 #ifdef  __cplusplus
 extern "C" {
 #endif
-DLLEXP int lib_mysqludf_host_resolver_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+DLLEXP my_bool lib_mysqludf_host_resolver_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 
 DLLEXP void lib_mysqludf_host_resolver_deinit(UDF_INIT *initid);
 /* For functions that return STRING or DECIMAL */
@@ -66,10 +66,11 @@ lib_mysqludf_host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsig
  * lib_mysqludf_skeleton_info()
  */
 
-int lib_mysqludf_host_resolver_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
+my_bool lib_mysqludf_host_resolver_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
+  bzero(initid, sizeof *initid);
   initid->maybe_null = true;
   initid->max_length = MAX_RESOLVER_RESULT_LEN;
-  return 0;
+  return true;
 }
 
 void lib_mysqludf_host_resolver_deinit(UDF_INIT *initid) {
@@ -89,8 +90,9 @@ char *lib_mysqludf_host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result,
 
   result = NULL;
   *length = 0;
+  *is_null = false;
 
-  if (args->arg_count == 0)
+  if (!args || args->arg_count == 0)
     goto end;
 
   for (i = 0; i < args->arg_count; ++i) {
