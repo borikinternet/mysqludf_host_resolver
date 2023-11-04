@@ -108,8 +108,10 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
       *error = 0;
 
       char addr_str[INET_ADDRSTRLEN];
-      inet_ntop(cur_addr->ai_family, &((struct sockaddr_in *) cur_addr->ai_addr)->sin_addr.s_addr, addr_str,
-                sizeof addr_str);
+      inet_ntop(cur_addr->ai_family,
+                (cur_addr->ai_family == AF_INET) ? &((struct sockaddr_in *) cur_addr->ai_addr)->sin_addr.s_addr
+                                                 : &((struct sockaddr_in6 *) cur_addr->ai_addr)->sin6_addr,
+                addr_str, sizeof addr_str);
 
       if (result && strstr(result, addr_str))
         continue;
