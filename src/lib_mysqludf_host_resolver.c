@@ -138,5 +138,7 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
   *is_null = true;
 
   end:
+  if (result)
+    *length = strnlen(result, *length);
   return result;
 }
