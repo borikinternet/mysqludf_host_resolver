@@ -154,7 +154,6 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
   *is_null = true;
 
   end:
-  *length = strnlen(_result, *length);
-  memcpy(result, _result, *length);
+  *length = snprintf(result, MAX_RESOLVER_RESULT_LEN, "%s", _result);
   return result;
 }
