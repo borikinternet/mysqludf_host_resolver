@@ -58,7 +58,8 @@ host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long *len
 }
 #endif
 
-#define MAX_RESOLVER_RESULT_LEN 65535
+#define MAX_RESOLVER_RESULT_LEN 4096
+#define MAX_FQDN_LEN            255
 
 /*
  * Output the library version.
@@ -66,8 +67,13 @@ host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long *len
  */
 
 my_bool host_resolver_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
+  if (!args->arg_count || args->arg_type[0] != STRING_RESULT) {
+    strcpy(message, "Wrong arguments to host_resolver: function accept at least one string");
+    return 1;
+  }
   initid->maybe_null = true;
   initid->max_length = MAX_RESOLVER_RESULT_LEN;
+  initid->const_item = false;
   return 0;
 }
 
@@ -83,37 +89,48 @@ void host_resolver_deinit(UDF_INIT *initid) {
 char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long *length, char *is_null,
                     char *error) {
   struct addrinfo hints, *addr_info_res = NULL;
-  bzero(&hints, sizeof hints);
+  char _result[MAX_RESOLVER_RESULT_LEN];
 
-  result = NULL;
+  bzero(&hints, sizeof hints);
+  bzero(_result, sizeof _result);
+
   *length = 0;
-  *is_null = false;
-  *error = -1;
+  *is_null = true;
+  *error = 0;
 
   if (!args || args->arg_count == 0) {
     *error = -2;
     goto error;
   }
 
-  int i, z;
+  int i;
   for (i = 0; i < args->arg_count; ++i) {
-    if ((z = getaddrinfo(args->args[i], NULL, &hints, &addr_info_res))) {
+
+    unsigned int len = args->lengths[i];
+    if (len > MAX_FQDN_LEN || args->arg_type[i] != STRING_RESULT)
+      continue;
+
+    char cur_host_name[MAX_FQDN_LEN + 1];
+    memcpy(cur_host_name, args->args[i], len);
+    cur_host_name[len] = '\0';
+
+    int z;
+    if ((z = getaddrinfo(cur_host_name, NULL, &hints, &addr_info_res))) {
       // some error occurs
-      printf("lib_mysql_host_resolver error: %s\n", gai_strerror(z));
+      printf("lib_mysql_host_resolver error: '%s' while resolving name '%s'\n", gai_strerror(z), cur_host_name);
       continue;
     }
 
     struct addrinfo *cur_addr;
     for (cur_addr = addr_info_res; cur_addr; cur_addr = cur_addr->ai_next) {
-      *error = 0;
 
-      char addr_str[INET_ADDRSTRLEN];
+      char addr_str[INET6_ADDRSTRLEN];
       inet_ntop(cur_addr->ai_family,
-                (cur_addr->ai_family == AF_INET) ? &((struct sockaddr_in *) cur_addr->ai_addr)->sin_addr.s_addr
-                                                 : &((struct sockaddr_in6 *) cur_addr->ai_addr)->sin6_addr,
+                (cur_addr->ai_family == AF_INET) ? (void *) &((struct sockaddr_in *) cur_addr->ai_addr)->sin_addr
+                                                 : (void *) &((struct sockaddr_in6 *) cur_addr->ai_addr)->sin6_addr,
                 addr_str, sizeof addr_str);
 
-      if (result && strstr(result, addr_str))
+      if (strstr(_result, addr_str))
         continue;
 
       if (*length + strnlen(addr_str, sizeof addr_str) > MAX_RESOLVER_RESULT_LEN)
@@ -122,13 +139,12 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
       unsigned long old_len = *length;
       if (old_len) {
         *length += strnlen(addr_str, sizeof addr_str) + 1;
-        result = realloc(result, *length + 1); // for space between old and additional new values
-        snprintf(result + old_len - 1, *length - old_len + 1, " %s", addr_str);
+        snprintf(_result + old_len - 1, *length - old_len + 1, " %s", addr_str);
       } else {
         *length += strnlen(addr_str, sizeof addr_str) + 1;
-        result = malloc(*length);
-        strncpy(result, addr_str, *length);
+        strncpy(_result, addr_str, *length);
       }
+      *is_null = false;
     }
     freeaddrinfo(addr_info_res);
   }
@@ -138,7 +154,7 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
   *is_null = true;
 
   end:
-  if (result)
-    *length = strnlen(result, *length);
+  *length = strnlen(_result, *length);
+  memcpy(result, _result, *length);
   return result;
 }
