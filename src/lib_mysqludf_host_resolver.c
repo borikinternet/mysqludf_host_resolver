@@ -68,17 +68,26 @@ host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long *len
  */
 
 my_bool host_resolver_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
-  if (!args->arg_count || args->arg_type[0] != STRING_RESULT) {
+  if (!args->arg_count) {
     strcpy(message, "Wrong arguments to host_resolver: function accept at least one string");
     return 1;
+  }
+  int i;
+  for (i = 0; i < args->arg_count; ++i) {
+    if (args->arg_type[i] != STRING_RESULT) {
+      strcpy(message, "Wrong arguments to host_resolver: function accept only strings");
+      return 1;
+    }
   }
   initid->maybe_null = true;
   initid->max_length = MAX_RESOLVER_RESULT_LEN;
   initid->const_item = false;
+  initid->ptr = NULL;
   return 0;
 }
 
 void host_resolver_deinit(UDF_INIT *initid) {
+  free(initid->ptr);
 }
 
 /* For functions that return REAL */
@@ -136,7 +145,7 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
       if (strstr(_result, addr_str))
         continue;
 
-      if (*length + strnlen(addr_str, sizeof addr_str) > MAX_RESOLVER_RESULT_LEN)
+      if (*length + strnlen(addr_str, sizeof addr_str) > initid->max_length)
         break;
 
       if (*length) {
@@ -144,6 +153,7 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
       } else {
         *length = strnlen(addr_str, sizeof addr_str);
         strncpy(_result, addr_str, sizeof addr_str);
+        _result[*length] = '\0';
       }
       *is_null = false;
     }
@@ -156,6 +166,6 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
   *is_null = true;
 
   end:
-  *length = snprintf(result, MAX_RESOLVER_RESULT_LEN, "%s", _result);
+  *length = snprintf(result, initid->max_length, "%s", _result);
   return result;
 }
