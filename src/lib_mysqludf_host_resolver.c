@@ -59,7 +59,7 @@ host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long *len
 }
 #endif
 
-#define MAX_RESOLVER_RESULT_LEN 4096
+#define MAX_RESOLVER_RESULT_LEN 512
 #define MAX_FQDN_LEN            255
 
 /*
@@ -110,7 +110,7 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
 
   if (!args || args->arg_count == 0) {
     *error = 1;
-    goto error;
+    return NULL;
   }
 
   int i;
@@ -127,7 +127,7 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
     int z;
     if ((z = getaddrinfo(cur_host_name, NULL, &hints, &addr_info_res))) {
       // some error occurs
-      printf("lib_mysql_host_resolver error: '%s' while resolving name '%s'\n", gai_strerror(z), cur_host_name);
+      // printf("lib_mysql_host_resolver error: '%s' while resolving name '%s'\n", gai_strerror(z), cur_host_name);
       freeaddrinfo(addr_info_res);
       addr_info_res = NULL;
       continue;
@@ -160,12 +160,7 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
     freeaddrinfo(addr_info_res);
     addr_info_res = NULL;
   }
-  goto end;
 
-  error:
-  *is_null = true;
-
-  end:
   *length = snprintf(result, initid->max_length, "%s", _result);
   return result;
 }
