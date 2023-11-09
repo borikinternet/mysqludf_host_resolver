@@ -24,6 +24,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <stdbool.h>
+#include <sys/param.h>
 #include "mysqludf.h"
 
 /* For Windows, define PACKAGE_STRING in the VS project */
@@ -99,7 +100,7 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
   *error = 0;
 
   if (!args || args->arg_count == 0) {
-    *error = -2;
+    *error = 1;
     goto error;
   }
 
@@ -111,13 +112,15 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
       continue;
 
     char cur_host_name[MAX_FQDN_LEN + 1];
+    bzero(cur_host_name, sizeof cur_host_name);
     memcpy(cur_host_name, args->args[i], len);
-    cur_host_name[len] = '\0';
 
     int z;
     if ((z = getaddrinfo(cur_host_name, NULL, &hints, &addr_info_res))) {
       // some error occurs
       printf("lib_mysql_host_resolver error: '%s' while resolving name '%s'\n", gai_strerror(z), cur_host_name);
+      freeaddrinfo(addr_info_res);
+      addr_info_res = NULL;
       continue;
     }
 
@@ -126,8 +129,8 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
 
       char addr_str[INET6_ADDRSTRLEN];
       inet_ntop(cur_addr->ai_family,
-                (cur_addr->ai_family == AF_INET) ? (void *) &((struct sockaddr_in *) cur_addr->ai_addr)->sin_addr
-                                                 : (void *) &((struct sockaddr_in6 *) cur_addr->ai_addr)->sin6_addr,
+                cur_addr->ai_family == AF_INET ? (void *) &((struct sockaddr_in *) cur_addr->ai_addr)->sin_addr
+                                               : (void *) &((struct sockaddr_in6 *) cur_addr->ai_addr)->sin6_addr,
                 addr_str, sizeof addr_str);
 
       if (strstr(_result, addr_str))
@@ -136,17 +139,16 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
       if (*length + strnlen(addr_str, sizeof addr_str) > MAX_RESOLVER_RESULT_LEN)
         break;
 
-      unsigned long old_len = *length;
-      if (old_len) {
-        *length += strnlen(addr_str, sizeof addr_str) + 1;
-        snprintf(_result + old_len - 1, *length - old_len + 1, " %s", addr_str);
+      if (*length) {
+        *length += snprintf(_result + *length, MIN(sizeof addr_str + 1, sizeof _result - *length), " %s", addr_str);
       } else {
-        *length += strnlen(addr_str, sizeof addr_str) + 1;
-        strncpy(_result, addr_str, *length);
+        *length = strnlen(addr_str, sizeof addr_str);
+        strncpy(_result, addr_str, sizeof addr_str);
       }
       *is_null = false;
     }
     freeaddrinfo(addr_info_res);
+    addr_info_res = NULL;
   }
   goto end;
 
