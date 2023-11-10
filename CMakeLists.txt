@@ -13,6 +13,8 @@ target_compile_definitions(mysqludf_host_resolver
         PRIVATE STANDARD MYSQL_SERVER)
 target_include_directories(mysqludf_host_resolver PRIVATE
         /usr/include/mysql include ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(mysqludf_host_resolver
+        pthreads)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
