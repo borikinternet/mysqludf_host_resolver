@@ -5,18 +5,17 @@ SET(SOURCES src/lib_mysqludf_host_resolver.c)
 
 configure_file(include/config.h.in config.h)
 
-add_library(mysqludf_host_resolver SHARED
-        ${SOURCES})
-set_target_properties(mysqludf_host_resolver
-        PROPERTIES PREFIX "lib_")
-target_compile_definitions(mysqludf_host_resolver
-        PRIVATE STANDARD MYSQL_SERVER)
-target_include_directories(mysqludf_host_resolver PRIVATE
-        /usr/include/mysql include ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(mysqludf_host_resolver
-        pthreads)
+add_library(mysqludf_host_resolver SHARED ${SOURCES})
+set_target_properties(mysqludf_host_resolver PROPERTIES PREFIX "lib_")
+target_compile_definitions(mysqludf_host_resolver PRIVATE STANDARD MYSQL_SERVER)
+target_include_directories(mysqludf_host_resolver PRIVATE /usr/include/mysql include ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(mysqludf_host_resolver pthread)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+add_library(udf_example SHARED src/udf_example.c)
+set_target_properties(udf_example PROPERTIES PREFIX "lib_")
+target_compile_definitions(udf_example PRIVATE STANDARD HAVE_DLOPEN)
+target_include_directories(udf_example PRIVATE /usr/include/mysql include ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(udf_example pthread)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(CHECK REQUIRED check)
@@ -31,12 +30,9 @@ include(CheckSymbolExists)
 include(CheckTypeSize)
 
 add_executable(mysqludf_host_resolver_test ${SOURCES})
-target_compile_definitions(mysqludf_host_resolver_test PRIVATE
-        STANDARD MYSQL_SERVER TESTING)
-target_include_directories(mysqludf_host_resolver_test PRIVATE
-        /usr/include/mysql include ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(mysqludf_host_resolver_test PRIVATE
-        ${CHECK_LIBRARIES})
+target_compile_definitions(mysqludf_host_resolver_test PRIVATE STANDARD MYSQL_SERVER TESTING)
+target_include_directories(mysqludf_host_resolver_test PRIVATE /usr/include/mysql include ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(mysqludf_host_resolver_test PRIVATE ${CHECK_LIBRARIES})
 
 enable_testing()
 

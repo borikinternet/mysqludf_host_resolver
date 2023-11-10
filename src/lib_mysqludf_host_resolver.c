@@ -68,10 +68,7 @@ host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long *len
  */
 
 my_bool host_resolver_init(UDF_INIT *initid, UDF_ARGS *args, char *message) {
-  if (!args->arg_count) {
-    strcpy(message, "Wrong arguments to host_resolver: function accept at least one string");
-    return 1;
-  }
+  if (!args->arg_count) RETURN_ERR("Wrong arguments count to host_resolver: function accept at least one string");
   int i;
   for (i = 0; i < args->arg_count; ++i)
     if (args->arg_type[i] != STRING_RESULT) RETURN_ERR(
@@ -125,7 +122,7 @@ char *host_resolver(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned lon
     int z;
     if ((z = getaddrinfo(cur_host_name, NULL, &hints, &addr_info_res))) {
       // some error occurs
-      // printf("lib_mysql_host_resolver error: '%s' while resolving name '%s'\n", gai_strerror(z), cur_host_name);
+      fprintf(stderr, "lib_mysql_host_resolver error: '%s' while resolving name '%s'\n", gai_strerror(z), cur_host_name);
       freeaddrinfo(addr_info_res);
       addr_info_res = NULL;
       continue;
