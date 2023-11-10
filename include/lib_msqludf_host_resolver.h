@@ -16,8 +16,8 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef MYSQLUDF_H_
-#define MYSQLUDF_H_
+#ifndef LIB_MYSQLUDF_HOST_RESOLVER_H_
+#define LIB_MYSQLUDF_HOST_RESOLVER_H_
 
 #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(WIN32)
 #define DLLEXP __declspec(dllexport)
@@ -47,15 +47,6 @@ typedef long long longlong;
 
 #include "config.h"
 
-char *strncpy_alloc(const char *str, unsigned long length);
-void **ptr_calloc(size_t nelem, size_t elsize);
-void ptr_free(void **ptr);
-int strncmp_caseins(char *str1, char *str2, size_t num);
-int charinstr(char *str, char c, size_t num);
-char *copy_argname(char *att, unsigned long length);
-
-#define TRIM_BACKQUOTE(fnull) (fnull+(int)(fnull[0]=='`'))		// Skip starting backquote
 #define RETURN_ERR(msg) { strcpy(message, msg); return 1; }		// Set error message and return in %_init functions
-#define ATTRIBUTE_COMPARE(i, str, len) (args->attribute_lengths[i] == len && strncmp_caseins(args->attributes[i], str, len) == 0)
 
-#endif /* MYSQLUDF_H_ */
+#endif /* LIB_MYSQLUDF_HOST_RESOLVER_H_ */
