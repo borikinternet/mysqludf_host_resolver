@@ -18,7 +18,7 @@ target_include_directories(udf_example PRIVATE /usr/include/mysql include ${CMAK
 target_link_libraries(udf_example pthread)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(CHECK REQUIRED check)
+pkg_check_modules(CHECK check)
 
 include(CheckCSourceCompiles)
 include(CheckCSourceRuns)
@@ -29,11 +29,13 @@ include(CheckLibraryExists)
 include(CheckSymbolExists)
 include(CheckTypeSize)
 
-add_executable(mysqludf_host_resolver_test ${SOURCES})
-target_compile_definitions(mysqludf_host_resolver_test PRIVATE STANDARD MYSQL_SERVER TESTING)
-target_include_directories(mysqludf_host_resolver_test PRIVATE /usr/include/mysql include ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(mysqludf_host_resolver_test PRIVATE ${CHECK_LIBRARIES})
+if (${CHECK_FOUND})
+    add_executable(mysqludf_host_resolver_test ${SOURCES})
+    target_compile_definitions(mysqludf_host_resolver_test PRIVATE STANDARD MYSQL_SERVER TESTING)
+    target_include_directories(mysqludf_host_resolver_test PRIVATE /usr/include/mysql include ${CMAKE_CURRENT_BINARY_DIR})
+    target_link_libraries(mysqludf_host_resolver_test PRIVATE ${CHECK_LIBRARIES})
 
-enable_testing()
+    enable_testing()
 
-add_test(NAME udf_test COMMAND mysqludf_host_resolver_test)
+    add_test(NAME udf_test COMMAND mysqludf_host_resolver_test)
+endif ()
